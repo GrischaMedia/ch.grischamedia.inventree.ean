@@ -7,7 +7,7 @@ from django.urls import path, re_path, reverse
 from django.utils.translation import gettext_lazy as _
 
 from plugin import InvenTreePlugin
-from plugin.mixins import PanelMixin, UrlsMixin, SettingsMixin, BarcodeMixin
+from plugin.mixins import UserInterfaceMixin, UrlsMixin, SettingsMixin, BarcodeMixin
 
 from part.models import Part
 
@@ -33,14 +33,14 @@ def gtin_checksum_is_valid(code: str) -> bool:
     return calc == check
 
 
-class GrischaMediaEANPlugin(PanelMixin, UrlsMixin, SettingsMixin, BarcodeMixin, InvenTreePlugin):
+class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, BarcodeMixin, InvenTreePlugin):
     """EAN / GTIN Unterstützung für InvenTree 0.18."""
 
     NAME = "GM_EAN"
     SLUG = "gm-ean"
     TITLE = _("EAN / GTIN Unterstützung")
     DESCRIPTION = _("Erfassen, validieren und scannen von EAN/GTIN Codes für Teile")
-    VERSION = "1.0.2"
+    VERSION = "1.0.3"
     AUTHOR = "GrischaMedia"
     WEBSITE = "https://grischamedia.ch"
     LICENSE = "Proprietary"
