@@ -1,0 +1,32 @@
+
+
+{% load i18n %}
+{% load static %}
+<div class="card">
+  <div class="card-body">
+    <form id="gm-ean-form" onsubmit="return false;">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="gm-ean-input"><strong>{% trans "EAN / GTIN" %}</strong></label>
+        <input id="gm-ean-input" name="ean" class="form-control" placeholder="z.B. 7612345678901" value="{{ ean|default:'' }}" />
+        <small class="form-text text-muted">{% trans "Wird im Teil-Metadatenfeld gespeichert und für Scans verwendet." %}</small>
+      </div>
+
+      <div class="mt-2">
+        <button type="button" class="btn btn-primary" onclick="gmEAN.save()">
+          <span class="fas fa-save"></span> {% trans "Speichern" %}
+        </button>
+        <button type="button" class="btn btn-light ml-2" onclick="gmEAN.clear()">
+          <span class="fas fa-eraser"></span> {% trans "Leeren" %}
+        </button>
+        <span id="gm-ean-status" class="ml-2"></span>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  window.gmEAN = window.gmEAN || {};
+  gmEAN.setUrl = '{% url "plugin:gm-ean:set-ean" part.pk %}';
+  gmEAN.current = '{{ ean|default:"" }}';
+</script>
+<script src="{% static 'gm_ean/panel.js' %}"></script>
