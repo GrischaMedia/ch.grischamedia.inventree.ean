@@ -37,10 +37,10 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
     """EAN / GTIN Unterstützung für InvenTree 0.18."""
 
     NAME = "GM_EAN"
-    SLUG = "gm-ean"
+    SLUG = "gm_ean"
     TITLE = _("EAN / GTIN Unterstützung")
     DESCRIPTION = _("Erfassen, validieren und scannen von EAN/GTIN Codes für Teile")
-    VERSION = "1.0.4"
+    VERSION = "1.0.5"
     AUTHOR = "GrischaMedia"
     WEBSITE = "https://grischamedia.ch"
     LICENSE = "Proprietary"
@@ -126,7 +126,7 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
                 "label": _("EAN bearbeiten"),
                 "title": _("EAN/GTIN für dieses Teil bearbeiten"),
                 "icon": "fa-solid fa-barcode",
-                "url": reverse("plugin:gm-ean:part-page", kwargs={"pk": obj.pk}),
+                "url": reverse("plugin:gm_ean:part-page", kwargs={"pk": obj.pk}),
                 "color": "",
             })
 
