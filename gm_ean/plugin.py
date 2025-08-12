@@ -11,6 +11,9 @@ from plugin.mixins import UserInterfaceMixin, UrlsMixin, SettingsMixin, BarcodeM
 
 from part.models import Part
 
+import logging
+logger = logging.getLogger(__name__)
+
 # --- GTIN Validation (8/12/13/14) ---
 import re
 GTIN_PATTERN = re.compile(r"^\d{8}$|^\d{12}$|^\d{13}$|^\d{14}$")
@@ -40,7 +43,7 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
     SLUG = "gm_ean"
     TITLE = _("EAN / GTIN Unterstützung")
     DESCRIPTION = _("Erfassen, validieren und scannen von EAN/GTIN Codes für Teile")
-    VERSION = "1.0.6"
+    VERSION = "1.0.7"
     AUTHOR = "GrischaMedia"
     WEBSITE = "https://grischamedia.ch"
     LICENSE = "Proprietary"
@@ -95,6 +98,8 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
         key = self.get_setting("EAN_METADATA_KEY")
         ean = (obj.metadata or {}).get(key, "")
 
+        logger.info("gm_ean:get_custom_panels part_id=%s ean=%s", getattr(obj, 'pk', None), ean)
+
         return [
             {
                 "title": "EAN / GTIN",
@@ -121,6 +126,8 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
         except Exception:
             obj = None
 
+        logger.info("gm_ean:get_object_actions for part_id=%s", getattr(obj, 'pk', None))
+
         if isinstance(obj, Part):
             actions.append({
                 "label": _("EAN bearbeiten"),
@@ -138,6 +145,7 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
             re_path(rf"{self.SLUG}/set/(?P<pk>\d+)/$", self.set_ean, name="set-ean"),
             path(f"{self.SLUG}/search/", self.search_ean, name="search"),
             path(f"{self.SLUG}/part/<int:pk>/", self.page_ean, name="part-page"),
+            path(f"{self.SLUG}/ping/", self.ping, name="ping"),
         ]
 
     def _find_part_by_ean(self, code: str) -> Optional[Part]:
@@ -209,6 +217,21 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
 </body></html>
 """
         return HttpResponse(html)
+
+    def ping(self, request: HttpRequest) -> HttpResponse:
+        """Simple health check endpoint to verify that routes are registered."""
+        data = {
+            "ok": True,
+            "plugin": self.SLUG,
+            "version": self.VERSION,
+            "paths": [
+                f"/plugin/{self.SLUG}/ping/",
+                f"/plugin/{self.SLUG}/search/?code=TEST",
+                f"/plugin/{self.SLUG}/part/<id>/",
+                f"/plugin/{self.SLUG}/set/<id>/",
+            ],
+        }
+        return JsonResponse(data)
 
     def search_ean(self, request: HttpRequest) -> HttpResponse:
         code = (request.GET.get("code") or "").strip()
