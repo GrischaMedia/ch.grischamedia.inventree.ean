@@ -40,7 +40,7 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
     SLUG = "gm_ean"
     TITLE = _("EAN / GTIN Unterstützung")
     DESCRIPTION = _("Erfassen, validieren und scannen von EAN/GTIN Codes für Teile")
-    VERSION = "1.0.5"
+    VERSION = "1.0.6"
     AUTHOR = "GrischaMedia"
     WEBSITE = "https://grischamedia.ch"
     LICENSE = "Proprietary"
@@ -235,3 +235,8 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
                     "success": str(_("Gefundenes Teil")),
                 }
         return None
+
+# --- Entry-point factory (ensures registry gets an *instance*, not a class) ---
+
+def get_plugin():
+    return GrischaMediaEANPlugin()
