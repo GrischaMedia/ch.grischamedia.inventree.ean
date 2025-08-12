@@ -7,7 +7,7 @@ from django.urls import path, re_path, reverse
 from django.utils.translation import gettext_lazy as _
 
 from plugin import InvenTreePlugin
-from plugin.mixins import UserInterfaceMixin, UrlsMixin, SettingsMixin, BarcodeMixin
+from plugin.mixins import UserInterfaceMixin, UrlsMixin, SettingsMixin, BarcodeMixin, ActionMixin
 
 from part.models import Part
 
@@ -33,14 +33,14 @@ def gtin_checksum_is_valid(code: str) -> bool:
     return calc == check
 
 
-class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, BarcodeMixin, InvenTreePlugin):
+class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, BarcodeMixin, ActionMixin, InvenTreePlugin):
     """EAN / GTIN Unterstützung für InvenTree 0.18."""
 
     NAME = "GM_EAN"
     SLUG = "gm-ean"
     TITLE = _("EAN / GTIN Unterstützung")
     DESCRIPTION = _("Erfassen, validieren und scannen von EAN/GTIN Codes für Teile")
-    VERSION = "1.0.3"
+    VERSION = "1.0.4"
     AUTHOR = "GrischaMedia"
     WEBSITE = "https://grischamedia.ch"
     LICENSE = "Proprietary"
@@ -109,11 +109,35 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
             }
         ]
 
+    def get_object_actions(self, view, request: HttpRequest) -> List[Dict[str, Any]]:
+        """Provide a quick action button on Part detail pages to open the EAN page."""
+        actions: List[Dict[str, Any]] = []
+
+        # Obtain bound object if possible
+        obj = None
+        try:
+            if hasattr(view, "get_object"):
+                obj = view.get_object()
+        except Exception:
+            obj = None
+
+        if isinstance(obj, Part):
+            actions.append({
+                "label": _("EAN bearbeiten"),
+                "title": _("EAN/GTIN für dieses Teil bearbeiten"),
+                "icon": "fa-solid fa-barcode",
+                "url": reverse("plugin:gm-ean:part-page", kwargs={"pk": obj.pk}),
+                "color": "",
+            })
+
+        return actions
+
     # ---------- URLs ----------
     def setup_urls(self):
         return [
             re_path(rf"{self.SLUG}/set/(?P<pk>\d+)/$", self.set_ean, name="set-ean"),
             path(f"{self.SLUG}/search/", self.search_ean, name="search"),
+            path(f"{self.SLUG}/part/<int:pk>/", self.page_ean, name="part-page"),
         ]
 
     def _find_part_by_ean(self, code: str) -> Optional[Part]:
@@ -156,6 +180,35 @@ class GrischaMediaEANPlugin(UserInterfaceMixin, UrlsMixin, SettingsMixin, Barcod
         part.save(update_fields=["metadata"])
 
         return JsonResponse({"success": True, "ean": code})
+
+    def page_ean(self, request: HttpRequest, pk: int, *args, **kwargs) -> HttpResponse:
+        """Standalone minimal page to edit the EAN for a Part.
+        Uses the same template as the panel to avoid template duplication.
+        """
+        try:
+            part = Part.objects.get(pk=pk)
+        except Part.DoesNotExist:
+            return HttpResponseBadRequest("Part not found")
+
+        key = self.get_setting("EAN_METADATA_KEY")
+        ean = (part.metadata or {}).get(key, "")
+
+        # Simple inline wrapper HTML using the panel template content
+        from django.template.loader import render_to_string
+        content = render_to_string(
+            "gm_ean/part_panel.html",
+            {"part": part, "ean": ean, "metadata_key": key, "plugin_slug": self.SLUG},
+            request=request,
+        )
+        html = f"""
+<!DOCTYPE html>
+<html><head><meta charset='utf-8'><title>EAN / GTIN – Teil #{part.pk}</title></head>
+<body style='margin:20px;'>
+  <h2>EAN / GTIN für Teil #{part.pk} – {part.name}</h2>
+  {content}
+</body></html>
+"""
+        return HttpResponse(html)
 
     def search_ean(self, request: HttpRequest) -> HttpResponse:
         code = (request.GET.get("code") or "").strip()
