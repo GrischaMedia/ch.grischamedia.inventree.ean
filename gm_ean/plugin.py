@@ -40,7 +40,7 @@ class GrischaMediaEANPlugin(PanelMixin, UrlsMixin, SettingsMixin, BarcodeMixin, 
     SLUG = "gm-ean"
     TITLE = _("EAN / GTIN Unterstützung")
     DESCRIPTION = _("Erfassen, validieren und scannen von EAN/GTIN Codes für Teile")
-    VERSION = "1.0.0"
+    VERSION = "1.0.2"
     AUTHOR = "GrischaMedia"
     WEBSITE = "https://grischamedia.ch"
     LICENSE = "Proprietary"
@@ -73,31 +73,41 @@ class GrischaMediaEANPlugin(PanelMixin, UrlsMixin, SettingsMixin, BarcodeMixin, 
 
     # ---------- Panel (Legacy-UI 0.18) ----------
     def get_custom_panels(self, view, request: HttpRequest) -> List[Dict[str, Any]]:
-        try:
-            from part.views import PartDetail
-        except Exception:
-            return []
+        """Return custom panels for any detail view which resolves to a Part instance.
 
+        Avoid tight coupling to a specific view class (PartDetail) by resolving the
+        bound object dynamically via `get_object()` and verifying its type.
+        """
         if not self.get_setting("ENABLE_PANEL"):
             return []
 
-        if isinstance(view, PartDetail):
-            part = view.get_object()
-            key = self.get_setting("EAN_METADATA_KEY")
-            ean = (part.metadata or {}).get(key, "")
+        # Try to get the bound object from the view
+        obj = None
+        try:
+            if hasattr(view, "get_object"):
+                obj = view.get_object()
+        except Exception:
+            obj = None
 
-            return [{
+        if not isinstance(obj, Part):
+            return []
+
+        key = self.get_setting("EAN_METADATA_KEY")
+        ean = (obj.metadata or {}).get(key, "")
+
+        return [
+            {
                 "title": "EAN / GTIN",
                 "icon": "fas fa-barcode",
                 "content_template": "gm_ean/part_panel.html",
                 "context": {
-                    "part": part,
+                    "part": obj,
                     "ean": ean,
                     "metadata_key": key,
                     "plugin_slug": self.SLUG,
                 },
-            }]
-        return []
+            }
+        ]
 
     # ---------- URLs ----------
     def setup_urls(self):
